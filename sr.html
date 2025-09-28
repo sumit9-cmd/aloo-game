@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aloo Khaoge Game</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to bottom, #87CEEB, #fceabb);
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas {
+      background: #c2f0c2;
+      margin-top: 20px;
+      border: 3px solid #444;
+      border-radius: 12px;
+      touch-action: none; /* prevent double tap zoom */
+    }
+    h1 {
+      margin-top: 20px;
+    }
+    a.subscribe {
+      margin-top: 15px;
+      font-size: 20px;
+      text-decoration: none;
+      color: red;
+      font-weight: bold;
+    }
+    button.jump-btn {
+      margin-top: 15px;
+      font-size: 22px;
+      font-weight: bold;
+      padding: 12px 30px;
+      background: red;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button.jump-btn:active {
+      background: darkred;
+    }
+  </style>
+</head>
+<body>
+  <h1>🥔 Aloo Khaoge? 🥔</h1>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
+
+  <!-- Jump button for mobile -->
+  <button class="jump-btn" id="jumpBtn">JUMP</button>
+
+  <!-- Subscribe link -->
+  <a href="https://www.youtube.com/@VeltoxGaming" target="_blank" class="subscribe">
+    🔔 Subscribe to Veltox Gaming 🔔
+  </a>
+
+  <script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let score = 0;
+    let gameOver = false;
+
+    const player = {
+      x: 80,
+      y: 250,
+      width: 50,
+      height: 60,
+      dy: 0,
+      gravity: 0.6,
+      jumpPower: -16,
+      onGround: false
+    };
+
+    let pipes = [];
+    let aloos = [];
+
+    function drawPlayer() {
+      ctx.beginPath();
+      ctx.ellipse(player.x + player.width/2, player.y + player.height/2,
+                  player.width/2.2, player.height/2, 0, 0, Math.PI*2);
+      ctx.fillStyle = "#d2a679";
+      ctx.fill();
+
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(player.x + 15, player.y + 20, 6, 0, Math.PI*2);
+      ctx.arc(player.x + 35, player.y + 20, 6, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(player.x + 15, player.y + 20, 2.5, 0, Math.PI*2);
+      ctx.arc(player.x + 35, player.y + 20, 2.5, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(player.x + 25, player.y + 38, 10, 0, Math.PI);
+      ctx.stroke();
+    }
+
+    function drawPipe(pipe) {
+      ctx.fillStyle = "#228B22";
+      ctx.fillRect(pipe.x, canvas.height - pipe.height - 30, pipe.width, pipe.height);
+      ctx.fillStyle = "#006400";
+      ctx.fillRect(pipe.x - 5, canvas.height - pipe.height - 40, pipe.width + 10, 10);
+    }
+
+    function drawAloo(aloo) {
+      ctx.font = "28px Arial";
+      ctx.fillText("🥔", aloo.x, aloo.y);
+    }
+
+    function spawnPipe() {
+      let height = Math.floor(Math.random() * 70) + 30;
+      let pipe = { x: canvas.width, width: 50, height: height };
+      pipes.push(pipe);
+
+      aloos.push({
+        x: pipe.x - 150,
+        y: canvas.height - 40
+      });
+    }
+
+    function update() {
+      if (gameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#654321";
+      ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+
+      player.y += player.dy;
+      player.dy += player.gravity;
+
+      if (player.y + player.height > canvas.height - 30) {
+        player.y = canvas.height - 30 - player.height;
+        player.dy = 0;
+        player.onGround = true;
+      }
+
+      for (let i = 0; i < pipes.length; i++) {
+        const pipe = pipes[i];
+        pipe.x -= 5;
+        drawPipe(pipe);
+
+        if (
+          player.x < pipe.x + pipe.width &&
+          player.x + player.width > pipe.x &&
+          player.y + player.height > canvas.height - pipe.height - 30
+        ) {
+          gameOver = true;
+          alert("Game Over! You ate " + score + " aloos 🥔");
+        }
+      }
+
+      for (let i = 0; i < aloos.length; i++) {
+        const aloo = aloos[i];
+        aloo.x -= 5;
+        drawAloo(aloo);
+
+        if (
+          player.x < aloo.x + 20 &&
+          player.x + player.width > aloo.x &&
+          player.y < aloo.y &&
+          player.y + player.height > aloo.y - 20
+        ) {
+          score++;
+          aloos.splice(i, 1);
+          i--;
+        }
+      }
+
+      drawPlayer();
+
+      ctx.fillStyle = "#000";
+      ctx.font = "20px Arial";
+      ctx.fillText("Aloos eaten: " + score, 10, 25);
+    }
+
+    setInterval(() => { if (!gameOver) spawnPipe(); }, 2500);
+
+    // Jump function
+    function jump() {
+      if (player.onGround) {
+        player.dy = player.jumpPower;
+        player.onGround = false;
+      }
+    }
+
+    // Controls: PC + Mobile
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") jump();
+    });
+    canvas.addEventListener("click", jump);
+    canvas.addEventListener("touchstart", jump);
+    document.getElementById("jumpBtn").addEventListener("click", jump);
+
+    function gameLoop() {
+      update();
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+  </script>
+</body>
+</html>
